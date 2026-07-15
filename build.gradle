@@ -1,0 +1,56 @@
+// Rectangle freeze tag — build, test, and run.
+//
+//   ./gradlew run     play it
+//   ./gradlew test    run the unit tests (headless, no window)
+//   ./gradlew build   compile + test + jar
+//
+// In 2018 this was an Eclipse project whose .classpath pointed at
+// org.eclipse.jdt.USER_LIBRARY/StdDraw — a library registered inside one
+// Eclipse installation. It was never in the repo, so cloning this project
+// and building it was impossible for anyone (including future-Paula on a
+// new laptop). Declaring the dependency here is what fixes that.
+
+plugins {
+    id 'application'
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Princeton's stdlib, which provides edu.princeton.cs.introcs.StdDraw.
+    // This is the only publicly available build of StdDraw that still uses
+    // the edu.princeton.cs.introcs package — Princeton's current stdlib.jar
+    // puts its classes in the default package instead. See README for the
+    // two API call differences this implies.
+    implementation 'com.googlecode.princeton-java-introduction:stdlib:1.0.1'
+
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        // 2018 Eclipse targeted Java 9, which is long past end of life.
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+application {
+    mainClass = 'MovingRectangleDriver'
+}
+
+test {
+    useJUnitPlatform()
+    // The game draws with StdDraw (AWT/Swing), but MovingRectangle itself is
+    // pure logic — no window is ever opened by the tests. Forcing headless
+    // keeps that honest: if a test ever touches the GUI, it fails here
+    // instead of hanging a CI runner.
+    systemProperty 'java.awt.headless', 'true'
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+    }
+}

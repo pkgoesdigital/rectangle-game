@@ -1,6 +1,7 @@
 import java.awt.Color;
-import edu.princeton.cs.introcs.*;
 import java.util.Random;
+
+import edu.princeton.cs.introcs.StdDraw;
 
 public class MovingRectangle {
 
@@ -15,8 +16,11 @@ public class MovingRectangle {
 	private int r, g, b;
 
 	//create 5 rectangle objects & draw on canvas
-	public MovingRectangle(double xCoord, double yCoord, double width, 
-			double height, double xv, double yv, int remainingClicks) { 
+	// NOTE: StdDraw.filledRectangle takes HALF width and HALF height, so
+	// these fields are half-extents — which is why collidesWith/hasMouse
+	// below compare against xCoord +/- width rather than width/2.
+	public MovingRectangle(double xCoord, double yCoord, double width,
+			double height, double xv, double yv, int remainingClicks) {
 		this.xCoord = xCoord;
 		this.yCoord = yCoord;
 		this.width = width;
@@ -24,21 +28,25 @@ public class MovingRectangle {
 		this.xv = xv;
 		this.yv = yv;
 		this.isFrozen = false;
-		// to account for halfWidth in StdDraw
-		this.width = width; 
-		// to account for halfHeight in StdDraw
-		this.height = height;
 		this.remainingClicks = remainingClicks;
+		// Give it a colour up front. Without this, r/g/b stay 0 and every
+		// rectangle is drawn black until it happens to hit a wall.
+		randomColor();
 	}
 
 	//create new random object for rng of r, g, b values
-	Random rng = new Random();
+	private final Random rng = new Random();
 
 	public void randomColor() {
 		r = rng.nextInt(256);
 		g = rng.nextInt(256);
 		b = rng.nextInt(256);
 		randomColor = new Color(r, g, b);
+	}
+
+	//exposed so tests can check the colour without opening a window
+	public Color getColor() {
+		return randomColor;
 	}
 
 	public void draw() {
@@ -98,8 +106,8 @@ public class MovingRectangle {
 		if (!isFrozen) {
 			return;
 		}
-		//sets remaining clicks
-		remainingClicks = rng.nextInt(3) + 1;
+		//give it a fresh click count for its next life
+		resetRemainingClicks();
 		//changes isFrozen to false if isFrozen is true
 		isFrozen = false;
 	}
@@ -122,6 +130,24 @@ public class MovingRectangle {
 	//getter method
 	public int getRemainingClicks() {
 		return remainingClicks;
+	}
+
+	//position and velocity getters — the game itself never needs these, but
+	//they let the tests check movement and bouncing without opening a window
+	public double getX() {
+		return xCoord;
+	}
+
+	public double getY() {
+		return yCoord;
+	}
+
+	public double getXVelocity() {
+		return xv;
+	}
+
+	public double getYVelocity() {
+		return yv;
 	}
 
 	//checks values for rectangle objects to keep randomly generated rectangle dimensions on the StdDraw canvas

@@ -1,5 +1,6 @@
-import edu.princeton.cs.introcs.*;
 import java.util.Random;
+
+import edu.princeton.cs.introcs.StdDraw;
 
 public class MovingRectangleDriver {
 
@@ -13,7 +14,10 @@ public class MovingRectangleDriver {
 		StdDraw.setCanvasSize(700, 700);
 		StdDraw.setScale(0,100);
 
-		StdDraw.enableDoubleBuffering();
+		// Double buffering is switched on by StdDraw.show(t) at the bottom of
+		// the loop in this build of StdDraw — see README ("The StdDraw
+		// dependency"). The enableDoubleBuffering()/show()/pause() trio the
+		// 2018 code used doesn't exist here.
 
 		//create 5 rectangle objects with array
 		MovingRectangle [] rectangles = new MovingRectangle[5];
@@ -48,20 +52,18 @@ public class MovingRectangleDriver {
 			for(int j = 0; j < rectangles.length; j++) 
 			{
 				//checking whether ismousePressed value for both x and y coordinates
-				boolean goIn = StdDraw.isMousePressed() && rectangles[j].hasMouse(StdDraw.mouseX(), StdDraw.mouseY());
+				boolean goIn = StdDraw.mousePressed() && rectangles[j].hasMouse(StdDraw.mouseX(), StdDraw.mouseY());
 				//check to see if user is clicking mouse
 				if (goIn && !clicked) 
 				{
 					int clicks = rectangles[j].getRemainingClicks();
 					//check to see value of clicks, if clicks is 0 then rectangles freeze and turn red
-					if(clicks == 1) 
+					if(clicks == 1)
 					{
 						rectangles[j].freeze();
-						rectangles[j].isFrozen();
 						//increment frozenRectangleCount to track # of frozen rectangles in game at all times
 						++frozenRectangleCount;
-						//decrement clicks value - otherwise clicks will always be 1
-						clicks = 0;
+						rectangles[j].setRemainingClicks(0);
 					}
 					else 
 					{
@@ -71,7 +73,7 @@ public class MovingRectangleDriver {
 					}
 					clicked = true;
 				} 
-				if (!StdDraw.isMousePressed()) 
+				if (!StdDraw.mousePressed()) 
 				{
 					//sets clicked to false for next iteration
 					clicked = false;
@@ -84,13 +86,11 @@ public class MovingRectangleDriver {
 						if(rectangles[i].isFrozen()) 
 						{
 							rectangles[i].unfreeze();
-							rectangles[i].resetRemainingClicks();
 							--frozenRectangleCount;
 						}
 						else if(rectangles[j].isFrozen())
 						{
 							rectangles[j].unfreeze();
-							rectangles[j].resetRemainingClicks();
 							--frozenRectangleCount;
 						}
 					}
@@ -112,9 +112,9 @@ public class MovingRectangleDriver {
 			// uncomment to show frozenRectangleCount on StdDraw canvas at all times
 			// StdDraw.setPenColor(StdDraw.BLACK);
 			// StdDraw.text(20, 10, frozenRectangleCount + "");
-			//StdDraw.show mirrors backbuffer enabled from StdDraw.enableDoubleBuffering()
-			StdDraw.show();
-			StdDraw.pause(20);
+			//copy the offscreen buffer to the screen, pause 20ms, and keep
+			//double buffering on — one call does all three here
+			StdDraw.show(20);
 		}
 
 	}
