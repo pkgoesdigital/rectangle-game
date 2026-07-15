@@ -37,10 +37,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libxtst6 libxrender1 libxi6 libxext6
           export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x1024x24 &
+          Xvfb :99 -screen 0 1024x1024x24 2>/dev/null &
           sleep 2
-          timeout 20 ./gradlew run --no-daemon --console=plain > run.log 2>&1
-          rc=$?
+          # `|| rc=$?` is load-bearing: steps run under `bash -e`, so without
+          # it the expected non-zero exit from `timeout` kills the step before
+          # we get to decide whether that exit code was the good one.
+          rc=0
+          timeout 20 ./gradlew run --no-daemon --console=plain > run.log 2>&1 || rc=$?
           # 124 means `timeout` had to kill it — i.e. the game loop was still
           # running, which is exactly what we want. Anything else means it
           # exited on its own, which for a while(true) loop means it crashed.
