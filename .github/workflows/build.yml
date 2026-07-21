@@ -1,0 +1,65 @@
+# Proves the game still builds and its logic still behaves.
+#
+# The 2018 project could not be built by anyone who cloned it: its Eclipse
+# .classpath pointed at a StdDraw "user library" that lived only in one
+# Eclipse installation. build.gradle declares that dependency properly, and
+# this workflow is what keeps that honest.
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test
+        run: ./gradlew build --no-daemon
+
+      # The unit tests are headless by design. This step is the other half:
+      # start the real game on a virtual X display and confirm it opens a
+      # window and keeps animating instead of throwing. libXtst/libXrender
+      # are what AWT needs to load libawt_xawt.
+      - name: Launch the game on a virtual display
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libxtst6 libxrender1 libxi6 libxext6
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x1024x24 2>/dev/null &
+          sleep 2
+          # `|| rc=$?` is load-bearing: steps run under `bash -e`, so without
+          # it the expected non-zero exit from `timeout` kills the step before
+          # we get to decide whether that exit code was the good one.
+          rc=0
+          timeout 20 ./gradlew run --no-daemon --console=plain > run.log 2>&1 || rc=$?
+          # 124 means `timeout` had to kill it — i.e. the game loop was still
+          # running, which is exactly what we want. Anything else means it
+          # exited on its own, which for a while(true) loop means it crashed.
+          if [ $rc -ne 124 ]; then
+            echo "Game exited on its own (rc=$rc) — it should still be running:"
+            cat run.log
+            exit 1
+          fi
+          if grep -qi exception run.log; then
+            echo "Exception while running:"; cat run.log; exit 1
+          fi
+          echo "Game ran for 20s with no exceptions."
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
